@@ -72,8 +72,8 @@ preamble = '''
 
 var listeners = {}
 window.on = function on(ev, fn) {
-  var ref;
-  (ref = listeners[ev] ? ref : listeners[ev] = []).push(fn);
+  var ref = listeners[ev];
+  (ref ? ref : listeners[ev] = []).push(fn);
 }
 function emit(ev) {
   var fs = listeners[ev], args = Array.prototype.slice.call(arguments, 1);
@@ -123,15 +123,18 @@ persistent = {}
 window.cm = cm
 updateIframe = ->
   try
-    m.clear() for m in cm.getAllMarks()
     xfmd = xform cm.doc.getValue()
-    for i,val of xfmd.values
-      m = cm.markText {line:val.loc.start.line-1,ch:val.loc.start.column}, {line:val.loc.end.line-1, ch:val.loc.end.column}, {
-        className: 'token'
-        inclusiveLeft: true
-        inclusiveRight: true
-      }
-      m.value_id = i
+
+    cm.operation ->
+      m.clear() for m in cm.getAllMarks()
+      for id,val of xfmd.values
+        m = cm.markText {line:val.loc.start.line-1,ch:val.loc.start.column}, {line:val.loc.end.line-1, ch:val.loc.end.column}, {
+          className: 'token'
+          inclusiveLeft: true
+          inclusiveRight: true
+        }
+        m.value_id = id
+
     ast_json = JSON.stringify xfmd.ast, (k,v) -> if k is 'loc' then undefined else v
     values_json = JSON.stringify xfmd.values, (k,v) -> if k is 'loc' then v.start else v
     # TODO: if just a value changed, update it realtime.
@@ -178,6 +181,8 @@ updateIframe = ->
       ]) + escodegen.generate xfmd.ast
     iframe.contentDocument.body.appendChild s
   catch e
+    cm.operation ->
+      m.clear() for m in cm.getAllMarks()
     console.error e.stack
   return
 
