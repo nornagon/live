@@ -17,7 +17,7 @@ canvas.width = canvas.height = 500
 iframe = document.body.appendChild document.createElement 'iframe'
 iframe.style.display = 'none'
 
-cm = CodeMirror div, flattenSpans: no
+cm = CodeMirror div, flattenSpans: no, lineWrapping: yes
 cm.on 'renderLine', (cm, line, el) ->
   nums = el.querySelectorAll '.token'
   line = cm.getLineNumber(line)
