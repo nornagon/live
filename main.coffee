@@ -1,8 +1,23 @@
-canvas = document.body.appendChild document.createElement 'canvas'
+document.head.appendChild(document.createElement 'style').textContent = '''
+canvas { border: 1px solid black; position: fixed }
+.CodeMirror { -webkit-flex: 1; margin-left: 1em; height: 100%; }
+'''
+div = document.body.appendChild document.createElement 'div'
+div.style[k] = v for k,v of {
+  display: '-webkit-flex'
+  webkitFlexFlow: 'row'
+}
+canvasDiv = div.appendChild document.createElement 'div'
+canvasDiv.style[k] = v for k,v of {
+  width: '500px'
+  height: '500px'
+}
+canvas = canvasDiv.appendChild document.createElement 'canvas'
+canvas.width = canvas.height = 500
 iframe = document.body.appendChild document.createElement 'iframe'
 iframe.style.display = 'none'
 
-cm = CodeMirror document.body, flattenSpans: no
+cm = CodeMirror div, flattenSpans: no
 cm.on 'renderLine', (cm, line, el) ->
   nums = el.querySelectorAll '.token'
   line = cm.getLineNumber(line)
@@ -125,6 +140,7 @@ updateIframe = ->
     newCanvas = document.createElement('canvas')
     canvas.parentNode.replaceChild newCanvas, canvas
     canvas = newCanvas
+    canvas.width = canvas.height = 500
     iframe.contentWindow.canvas = canvas
     iframe.contentWindow.persistent = persistent
     s = iframe.contentDocument.createElement 'script'
