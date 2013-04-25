@@ -166,16 +166,25 @@ updateIframe = ->
           init:
             type: 'ObjectExpression',
             properties: (
-              {
-                type: 'Property'
-                key:
-                  type: 'Literal'
-                  value: k
-                value:
-                  type: 'Literal'
-                  value: v.value
-                kind: 'init'
-              } for k, v of xfmd.values
+              for k, v of xfmd.values
+                {
+                  type: 'Property'
+                  key:
+                    type: 'Literal'
+                    value: k
+                  value: (
+                    if v.value >= 0
+                      type: 'Literal'
+                      value: v.value
+                    else
+                      type: 'UnaryExpression',
+                      operator:'-',
+                      argument:
+                        type:'Literal',
+                        value:1
+                  )
+                  kind: 'init'
+                }
             )
         ]
       ]) + escodegen.generate xfmd.ast
