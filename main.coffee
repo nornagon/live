@@ -1,5 +1,6 @@
 canvas = document.body.appendChild document.createElement 'canvas'
 iframe = document.body.appendChild document.createElement 'iframe'
+iframe.style.display = 'none'
 
 cm = CodeMirror document.body, flattenSpans: no
 cm.on 'renderLine', (cm, line, el) ->
@@ -119,6 +120,7 @@ updateIframe = ->
     newIframe = document.createElement 'iframe'
     iframe.parentNode.replaceChild newIframe, iframe
     iframe = newIframe
+    iframe.style.display = 'none'
     newCanvas = document.createElement('canvas')
     canvas.parentNode.replaceChild newCanvas, canvas
     canvas = newCanvas
