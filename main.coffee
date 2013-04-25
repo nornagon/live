@@ -31,9 +31,13 @@ cm.on 'renderLine', (cm, line, el) ->
           zIndex: 10000
         }
         document.body.appendChild overlay
+        changed = false
         window.onmousemove = (e) ->
           d = Number((Math.round((e.pageX - initial_x)/2)*delta + originalValue).toFixed(5))
+          if changed
+            cm.doc.undo()
           cm.doc.replaceSelection(''+d)
+          changed = true
           iframe.contentWindow.$values[m.value_id] = d
           e.stopPropagation()
           e.preventDefault()
