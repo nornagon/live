@@ -47,22 +47,57 @@ cm.on 'renderLine', (cm, line, el) ->
   return
 
 preamble = '''
-mouse = {x:0, y:0};
+var mouse = {x:0, y:0};
+
+(function () {
+
+var listeners = {}
+window.on = function on(ev, fn) {
+  var ref;
+  (ref = listeners[ev] ? ref : listeners[ev] = []).push(fn);
+}
+function emit(ev) {
+  var fs = listeners[ev], args = Array.prototype.slice.call(arguments, 1);
+  if (!fs) return;
+  for (var i = 0; i < fs.length; i++) fs[i].apply(null, args);
+}
+
 canvas.addEventListener('mousemove', function(e) {
   mouse.x = e.offsetX;
   mouse.y = e.offsetY;
+  emit('mousemove', mouse)
 });
+canvas.addEventListener('mousedown', function(e) {
+  emit('mousedown', {x:e.offsetX,y:e.offsetY})
+});
+canvas.addEventListener('mouseup', function(e) {
+  emit('mouseup', {x:e.offsetX,y:e.offsetY})
+});
+canvas.addEventListener('click', function(e) {
+  emit('click', {x:e.offsetX,y:e.offsetY})
+});
+
+var beginTime = performance.now();
+webkitRequestAnimationFrame(function again(t) {
+  webkitRequestAnimationFrame(again);
+  var dt = (t-beginTime)/1000;
+  beginTime = t;
+  emit('frame', dt);
+});
+
+})();
 '''
 
 old_ast_json = ''
-old_ast = {}
+old_values_json = ''
+
+persistent = {}
 
 window.cm = cm
 updateIframe = ->
   try
     m.clear() for m in cm.getAllMarks()
     xfmd = xform cm.doc.getValue()
-    ast_json = JSON.stringify xfmd.ast, (k,v) -> if k is 'loc' then undefined else v
     for i,val of xfmd.values
       m = cm.markText {line:val.loc.start.line-1,ch:val.loc.start.column}, {line:val.loc.end.line-1, ch:val.loc.end.column}, {
         className: 'token'
@@ -70,13 +105,21 @@ updateIframe = ->
         inclusiveRight: true
       }
       m.value_id = i
-    if ast_json == old_ast_json
+    ast_json = JSON.stringify xfmd.ast, (k,v) -> if k is 'loc' then undefined else v
+    values_json = JSON.stringify xfmd.values, (k,v) -> if k is 'loc' then v.start else v
+    # TODO: if just a value changed, update it realtime.
+    if ast_json == old_ast_json and values_json == old_values_json
       return
+    old_values_json = values_json
     old_ast_json = ast_json
     newIframe = document.createElement 'iframe'
     iframe.parentNode.replaceChild newIframe, iframe
     iframe = newIframe
+    newCanvas = document.createElement('canvas')
+    canvas.parentNode.replaceChild newCanvas, canvas
+    canvas = newCanvas
     iframe.contentWindow.canvas = canvas
+    iframe.contentWindow.persistent = persistent
     s = iframe.contentDocument.createElement 'script'
     s.textContent = preamble + escodegen.generate(
       type: 'Program'
@@ -125,7 +168,7 @@ cm.on 'change', (cm, change) ->
 cm.doc.setValue '''
 ctx = canvas.getContext('2d')
 t = 0
-function frame(dt) {
+on('frame', function frame(dt) {
   t += dt*1000
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.fillStyle = 'red'
@@ -134,14 +177,6 @@ function frame(dt) {
   ctx.fillRect(mouse.x+Math.sin(t/h)*r-6,
                mouse.y+Math.cos(t/h)*r-6,
                12, 12)
-}
-
-beginTime = performance.now()
-webkitRequestAnimationFrame(function again(t) {
-  webkitRequestAnimationFrame(again)
-  dt = (t-beginTime)/1000
-  beginTime = t
-  frame(dt)
 })
 '''
 
