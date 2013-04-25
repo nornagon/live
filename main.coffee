@@ -98,13 +98,21 @@ canvas.addEventListener('click', function(e) {
   emit('click', {x:e.offsetX,y:e.offsetY})
 });
 
+var running = true;
 var beginTime = performance.now();
 webkitRequestAnimationFrame(function again(t) {
   webkitRequestAnimationFrame(again);
   var dt = (t-beginTime)/1000;
   beginTime = t;
-  emit('frame', dt);
+  if (running)
+    emit('frame', dt);
 });
+window.pause = function pause() {
+  running = false;
+}
+window.play = function play() {
+  running = true;
+}
 
 })();
 '''
@@ -172,6 +180,9 @@ updateIframe = ->
   catch e
     console.error e.stack
   return
+
+window.onblur = -> iframe.contentWindow.pause()
+window.onfocus = -> iframe.contentWindow.play()
 
 needsUpdate = false
 setNeedsUpdate = ->
