@@ -46,6 +46,7 @@ cm.on 'renderLine', (cm, line, el) ->
           window.onmousemove = undefined
           overlay.remove()
           cm.setOption 'readOnly', false
+          cm.focus()
           cm.scrubbing = false
       tok.style.borderBottom = '1px dashed blue'
       tok.style.cursor = 'ew-resize'
