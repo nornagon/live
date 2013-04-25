@@ -68,8 +68,6 @@ cm.on 'renderLine', (cm, line, el) ->
   return
 
 preamble = '''
-var mouse = {x:0, y:0};
-
 (function () {
 
 var listeners = {}
@@ -141,9 +139,11 @@ updateIframe = ->
       return
     old_values_json = values_json
     old_ast_json = ast_json
+    old_mouse = iframe.contentWindow.mouse ? {x:0,y:0}
     newIframe = document.createElement 'iframe'
     iframe.parentNode.replaceChild newIframe, iframe
     iframe = newIframe
+    iframe.contentWindow.mouse = old_mouse
     iframe.style.display = 'none'
     newCanvas = document.createElement('canvas')
     canvas.parentNode.replaceChild newCanvas, canvas
