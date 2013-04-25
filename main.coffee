@@ -189,6 +189,7 @@ setNeedsUpdate = ->
   return if needsUpdate
   needsUpdate = true
   setTimeout ->
+    window.localStorage['code'] = cm.doc.getValue()
     updateIframe()
     needsUpdate = false
   , 200
@@ -199,7 +200,7 @@ cm.on 'change', (cm, change) ->
   else
     setNeedsUpdate()
 
-cm.doc.setValue '''
+cm.doc.setValue window.localStorage['code'] ? '''
 ctx = canvas.getContext('2d')
 t = 0
 on('frame', function frame(dt) {
