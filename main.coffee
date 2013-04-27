@@ -221,17 +221,82 @@ cm.on 'change', (cm, change) ->
 
 cm.doc.setValue window.localStorage['code'] ? '''
 ctx = canvas.getContext('2d')
-t = 0
-on('frame', function frame(dt) {
-  t += dt*1000
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+var particles = [];
+
+function update(dt) {
+  for (var i = 0; i < particles.length; i++) {
+    var p = particles[i];
+    p.update(dt);
+  }
+  particles = cull(particles);
+
+  particles.push(new Particle({
+    x: mouse.x+rnd(0),
+    y: mouse.y+rnd(0),
+    vx: rnd(100),
+    vy: rnd(100),
+    size: linear(4+rnd(),17),
+    alpha: linear(0.5, 0),
+    life: 0.4,
+  }));
+}
+
+function Particle(opts) {
+  this.t = 0;
+  this.dead = false;
+  for (var k in opts) {
+    if (typeof opts[k] === 'function') {
+      (function(k) {
+      Object.defineProperty(this, k, {
+        get: function() { return opts[k](this.t/this.life); }
+      })
+      }).call(this, k)
+    }
+    this[k] = opts[k];
+  }
+}
+Particle.prototype.update = function(dt) {
+  this.t += dt;
+  if (this.vx) this.x += this.vx * dt;
+  if (this.vy) this.y += this.vy * dt;
+  if (this.t >= this.life) this.dead = true;
+}
+Particle.prototype.draw = function() {
   ctx.fillStyle = 'red'
-  h = 48.9
-  r = 7
-  ctx.fillRect(mouse.x+Math.sin(t/h)*r-6,
-               mouse.y+Math.cos(t/h)*r-6,
-               12, 12)
+  ctx.globalAlpha = this.alpha;
+  ctx.beginPath()
+  ctx.arc(this.x, this.y, this.size, 0, Math.PI*2)
+  ctx.fill()
+}
+
+function linear(a,b) {
+  return function(t) { return a*(1-t) + b*t; }
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height)
+  for (var i = 0; i < particles.length; i++) {
+    particles[i].draw()
+  }
+}
+
+on('frame', function(dt) {
+  update(dt);
+  draw();
 })
+
+function rnd(x) { return (x==null?1:x)*(Math.random()*2-1); }
+function cull(y) {
+  var x, _i, _len, _results;
+  _results = [];
+  for (_i = 0, _len = y.length; _i < _len; _i++) {
+    x = y[_i];
+    if (!x.dead) {
+      _results.push(x);
+    }
+  }
+  return _results;
+};
 '''
 
 #--------------------------------------------------------------
