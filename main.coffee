@@ -63,6 +63,7 @@ cm.on 'renderLine', (cm, line, el) ->
           cm.setOption 'readOnly', false
           cm.focus()
           cm.scrubbing = false
+          window.localStorage['code'] = cm.doc.getValue()
       tok.style.borderBottom = '1px dashed blue'
       tok.style.cursor = 'ew-resize'
   return
@@ -219,7 +220,11 @@ cm.on 'change', (cm, change) ->
   else
     setNeedsUpdate()
 
-cm.doc.setValue window.localStorage['code'] ? '''
+if sharejs?
+  sharejs.open 'hello', 'text', (err, doc) ->
+    doc.attach_cm cm
+else
+  cm.doc.setValue window.localStorage['code'] ? '''
 ctx = canvas.getContext('2d')
 var particles = [];
 
