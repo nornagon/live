@@ -97,14 +97,22 @@ canvas.addEventListener('click', function(e) {
 });
 
 var running = true;
+var focused = true;
 var beginTime = performance.now();
 webkitRequestAnimationFrame(function again(t) {
   webkitRequestAnimationFrame(again);
   var dt = (t-beginTime)/1000;
   beginTime = t;
-  if (running)
+  if (running && focused && !document.webkitHidden)
     emit('frame', dt);
 });
+window.parent.addEventListener('focus', function() {
+  focused = true;
+})
+window.parent.addEventListener('blur', function() {
+  focused = false;
+})
+
 window.pause = function pause() {
   running = false;
 }
@@ -194,9 +202,6 @@ updateIframe = ->
       m.clear() for m in cm.getAllMarks()
     console.error e.stack
   return
-
-window.onblur = -> iframe.contentWindow.pause()
-window.onfocus = -> iframe.contentWindow.play()
 
 needsUpdate = false
 setNeedsUpdate = ->
