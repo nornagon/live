@@ -190,7 +190,7 @@ updateIframe = ->
                       operator:'-',
                       argument:
                         type:'Literal',
-                        value:1
+                        value: -v.value
                   )
                   kind: 'init'
                 }
