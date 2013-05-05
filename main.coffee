@@ -33,7 +33,7 @@ cm.on 'renderLine', (cm, line, el) ->
       m = cm.findMarksAt({line,ch:begin})[0]
       return unless m
       tok.style.borderBottom = '1px dashed blue'
-      is_num = typeof xfmd_values[m.value_id] is 'string'
+      is_num = typeof xfmd_values[m.value_id].value is 'number'
       if is_num
         tok.style.cursor = 'ew-resize'
         tok.onmousedown = (e) ->
