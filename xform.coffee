@@ -7,27 +7,22 @@ xform = (code, prefix='') ->
     if e.type is 'Literal' and typeof e.value is 'number'
       id = nextId++
       $values[prefix+id] = {value: e.value, loc: e.loc}
-      type: "MemberExpression"
-      computed: true
-      object:
-        type: 'Identifier'
-        name: '$values'
-      property:
-        type: 'Literal'
-        value: prefix+''+id
     else if e.type is 'UnaryExpression' and e.operator is '-' and e.argument.type is 'Literal' and typeof e.argument.value is 'number'
       id = nextId++
       $values[prefix+id] = {value: -e.argument.value, loc: e.loc}
-      type: "MemberExpression"
-      computed: true
-      object:
-        type: 'Identifier'
-        name: '$values'
-      property:
-        type: 'Literal'
-        value: prefix+''+id
+    else if e.type is 'Literal' and typeof e.value is 'string' and thistle.isValidCSSColor e.value
+      id = nextId++
+      $values[prefix+id] = {value: e.value, loc: e.loc}
     else
-      transform e, replace
+      return transform e, replace
+    type: "MemberExpression"
+    computed: true
+    object:
+      type: 'Identifier'
+      name: '$values'
+    property:
+      type: 'Literal'
+      value: prefix+''+id
 
   # calls |f| on each node in the AST |object|
   transform = (object, f) ->

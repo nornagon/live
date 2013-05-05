@@ -1,5 +1,5 @@
 document.head.appendChild(document.createElement 'style').textContent = '''
-canvas { border: 1px solid black; position: fixed }
+.main > canvas { border: 1px solid black; position: fixed }
 .CodeMirror { -webkit-flex: 1; margin-left: 1em; height: 100%; }
 '''
 div = document.body.appendChild document.createElement 'div'
@@ -8,6 +8,7 @@ div.style[k] = v for k,v of {
   webkitFlexFlow: 'row'
 }
 canvasDiv = div.appendChild document.createElement 'div'
+canvasDiv.className = 'main'
 canvasDiv.style[k] = v for k,v of {
   width: '500px'
   height: '500px'
@@ -16,6 +17,8 @@ canvas = canvasDiv.appendChild document.createElement 'canvas'
 canvas.width = canvas.height = 500
 iframe = document.body.appendChild document.createElement 'iframe'
 iframe.style.display = 'none'
+
+xfmd_values = null
 
 cm = CodeMirror div, flattenSpans: no, lineWrapping: yes
 cm.on 'renderLine', (cm, line, el) ->
@@ -29,43 +32,70 @@ cm.on 'renderLine', (cm, line, el) ->
       end = begin + tok.textContent.length
       m = cm.findMarksAt({line,ch:begin})[0]
       return unless m
-      tok.onmousedown = (e) ->
-        initial_x = e.pageX
-        cm.setOption 'readOnly', 'nocursor'
-        cm.scrubbing = true
+      tok.style.borderBottom = '1px dashed blue'
+      is_num = typeof xfmd_values[m.value_id] is 'string'
+      if is_num
+        tok.style.cursor = 'ew-resize'
+        tok.onmousedown = (e) ->
+          initial_x = e.pageX
+          cm.setOption 'readOnly', 'nocursor'
+          cm.scrubbing = true
+          cm.doc.setSelection({line,ch:begin}, {line,ch:end})
 
-        originalValue = Number(tok.textContent)
-        delta = deltaForNumber originalValue
-        cm.doc.setSelection({line,ch:begin}, {line,ch:end})
-        e.stopPropagation()
-        e.preventDefault()
-        overlay = document.createElement('div')
-        overlay.style[k] = v for k,v of {
-          position: 'absolute'
-          left: 0, top: 0, width: '100%', height: '100%'
-          cursor: 'ew-resize'
-          zIndex: 10000
-        }
-        document.body.appendChild overlay
-        changed = false
-        window.onmousemove = (e) ->
-          d = Number((Math.round((e.pageX - initial_x)/2)*delta + originalValue).toFixed(5))
-          if changed
-            cm.doc.undo()
-          cm.doc.replaceSelection(''+d)
-          changed = true
-          iframe.contentWindow.$values[m.value_id] = d
+          originalValue = Number(tok.textContent)
+          delta = deltaForNumber originalValue
           e.stopPropagation()
           e.preventDefault()
-        window.onmouseup = window.blur = ->
-          window.onmousemove = undefined
-          overlay.remove()
-          cm.setOption 'readOnly', false
-          cm.focus()
-          cm.scrubbing = false
-          window.localStorage['code'] = cm.doc.getValue()
-      tok.style.borderBottom = '1px dashed blue'
-      tok.style.cursor = 'ew-resize'
+          overlay = document.createElement('div')
+          overlay.style[k] = v for k,v of {
+            position: 'absolute'
+            left: 0, top: 0, width: '100%', height: '100%'
+            cursor: 'ew-resize'
+            zIndex: 10000
+          }
+          document.body.appendChild overlay
+          changed = false
+          window.onmousemove = (e) ->
+            d = Number((Math.round((e.pageX - initial_x)/2)*delta + originalValue).toFixed(5))
+            if changed
+              cm.doc.undo()
+            cm.doc.replaceSelection(''+d)
+            changed = true
+            iframe.contentWindow.$values[m.value_id] = d
+            e.stopPropagation()
+            e.preventDefault()
+          window.onmouseup = window.blur = ->
+            window.onmousemove = undefined
+            overlay.remove()
+            cm.setOption 'readOnly', false
+            cm.focus()
+            cm.scrubbing = false
+            window.localStorage['code'] = cm.doc.getValue()
+      else
+        tok.style.cursor = 'pointer'
+        tok.onclick = (e) ->
+          cm.setOption 'readOnly', 'nocursor'
+          cm.scrubbing = true
+          cm.doc.setSelection({line,ch:begin}, {line,ch:end})
+
+          quote = tok.textContent[0]
+          p = new thistle.Picker tok.textContent.substr(1, tok.textContent.length-2)
+
+          changed = false
+          p.on 'changed', ->
+            if changed
+              cm.doc.undo()
+            color = p.getCSS()
+            cm.doc.replaceSelection quote + color + quote
+            changed = true
+            iframe.contentWindow.$values[m.value_id] = color
+          p.on 'closed', ->
+            cm.setOption 'readOnly', false
+            cm.focus()
+            cm.scrubbing = false
+            window.localStorage['code'] = cm.doc.getValue()
+
+          p.presentModalBeneath tok
   return
 
 preamble = '''
@@ -103,6 +133,7 @@ var beginTime = performance.now();
 webkitRequestAnimationFrame(function again(t) {
   webkitRequestAnimationFrame(again);
   var dt = (t-beginTime)/1000;
+  if (dt > 0.1) dt = 0.1;
   beginTime = t;
   if (running && focused && !document.webkitHidden)
     emit('frame', dt);
@@ -133,6 +164,7 @@ window.cm = cm
 updateIframe = ->
   try
     xfmd = xform cm.doc.getValue()
+    xfmd_values = xfmd.values
 
     cm.operation ->
       m.clear() for m in cm.getAllMarks()
@@ -146,12 +178,13 @@ updateIframe = ->
 
     ast_json = JSON.stringify xfmd.ast, (k,v) -> if k is 'loc' then undefined else v
     values_json = JSON.stringify xfmd.values, (k,v) -> if k is 'loc' then v.start else v
-    # TODO: if just a value changed, update it realtime.
+    # TODO: if just a value changed as a result of this edit, update it
+    # realtime.
     if ast_json == old_ast_json and values_json == old_values_json
       return
     old_values_json = values_json
     old_ast_json = ast_json
-    old_mouse = iframe.contentWindow.mouse ? {x:0,y:0}
+    old_mouse = iframe.contentWindow.mouse ? {x:250,y:250}
     newIframe = document.createElement 'iframe'
     iframe.parentNode.replaceChild newIframe, iframe
     iframe = newIframe
@@ -182,7 +215,7 @@ updateIframe = ->
                     type: 'Literal'
                     value: k
                   value: (
-                    if v.value >= 0
+                    if typeof v.value is 'string' or v.value >= 0
                       type: 'Literal'
                       value: v.value
                     else
