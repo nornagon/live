@@ -55,7 +55,7 @@ cm.on 'renderLine', (cm, line, el) ->
           }
           document.body.appendChild overlay
           changed = false
-          window.onmousemove = (e) ->
+          window.addEventListener 'mousemove', move = (e) ->
             d = Number((Math.round((e.pageX - initial_x)/2)*delta + originalValue).toFixed(5))
             if changed
               cm.doc.undo()
@@ -64,13 +64,17 @@ cm.on 'renderLine', (cm, line, el) ->
             iframe.contentWindow.$values[m.value_id] = d
             e.stopPropagation()
             e.preventDefault()
-          window.onmouseup = window.blur = ->
-            window.onmousemove = undefined
+          up = ->
+            window.removeEventListener 'mousemove', move
+            window.removeEventListener 'mouseup', up
+            window.removeEventListener 'blur', up
             overlay.remove()
             cm.setOption 'readOnly', false
             cm.focus()
             cm.scrubbing = false
             window.localStorage['code'] = cm.doc.getValue()
+          window.addEventListener 'mouseup', up
+          window.addEventListener 'blur', up
       else
         tok.style.cursor = 'pointer'
         tok.onclick = (e) ->
