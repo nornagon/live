@@ -82,11 +82,13 @@
   };
 
   isValidCSSColor = function(cssColor) {
-    var s;
+    var ret, s;
     s = document.createElement('span');
     document.body.appendChild(s);
     s.style.backgroundColor = cssColor;
-    return s.style.backgroundColor.length > 0;
+    ret = s.style.backgroundColor.length > 0;
+    s.remove();
+    return ret;
   };
 
   style = function(tag, styles) {

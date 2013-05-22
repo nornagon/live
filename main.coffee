@@ -137,8 +137,8 @@ var beginTime = performance.now();
 webkitRequestAnimationFrame(function again(t) {
   webkitRequestAnimationFrame(again);
   var dt = (t-beginTime)/1000;
-  if (dt > 0.1) dt = 0.1;
   beginTime = t;
+  if (dt > 0.1) dt = 0.1;
   if (running && focused && !document.webkitHidden)
     emit('frame', dt);
 });
